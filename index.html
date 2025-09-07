@@ -13,7 +13,7 @@
     :root { --bg:#0b0c10; --card:#151821; --muted:#9ba1a6; --acc:#0ea5e9; --green:#22c55e; --red:#ef4444; --white:#f8fafc }
     *{box-sizing:border-box;}
     body{margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background:var(--bg); color:var(--white);}
-    .wrap{max-width:600px; margin:0 auto; padding:16px;}
+    .wrap{max-width:680px; margin:0 auto; padding:16px;}
     .card{background:var(--card); border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25);}
     h1{font-size:28px; margin:8px 0 0}
     .row{display:flex; gap:12px}
@@ -25,12 +25,15 @@
     .ok{color:var(--green)} .warn{color:var(--red)}
     .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
     label{font-size:14px; color:var(--muted)}
-    input[type="number"], input[type="time"]{width:100%; padding:10px; border-radius:12px; border:1px solid #2a2f3b; background:#0f1117; color:#fff}
+    input[type="number"], input[type="time"], input[type="date"], input[type="text"]{width:100%; padding:10px; border-radius:12px; border:1px solid #2a2f3b; background:#0f1117; color:#fff}
     .bar{height:10px; background:#2a2f3b; border-radius:999px; overflow:hidden}
     .bar>div{height:100%; background:linear-gradient(90deg, #22c55e, #0ea5e9); width:0%}
     .toast{position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 14px; border-radius:999px; opacity:0; transition:opacity .2s ease}
     .toast.show{opacity:1}
-    a{color:#7dd3fc}
+    .pill{display:inline-block; padding:4px 10px; border-radius:999px; background:#2a2f3b; font-size:12px;}
+    table{width:100%; border-collapse:collapse; font-size:14px}
+    th,td{padding:8px; border-bottom:1px solid #2a2f3b; text-align:right}
+    th:first-child,td:first-child{text-align:left}
   </style>
 </head>
 <body>
@@ -40,7 +43,7 @@
       <h1>StickDown</h1>
       <div class="muted" id="today"></div>
     </div>
-    <button class="secondary" id="btnSettings" aria-label="Impostazioni">⚙️</button>
+    <button class="secondary" id="btnSettings" aria-label="Impostazioni">Impostazioni</button>
   </div>
 
   <div class="card" style="margin-top:12px">
@@ -56,67 +59,88 @@
   </div>
 
   <div class="card" style="margin-top:12px">
-    <div style="display:flex; justify-content:space-between; align-items:center">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px">
       <div>
-        <div class="muted">Intervallo consigliato</div>
+        <div class="muted">Intervallo consigliato ora</div>
         <div id="reco" class="big">—</div>
+        <div class="muted" id="hint">In base al tempo di veglia rimanente e agli stick ancora disponibili oggi.</div>
       </div>
       <div style="text-align:right">
-        <div class="muted">Obiettivo</div>
+        <div class="muted">Obiettivo di oggi</div>
         <div id="goal" class="big">—</div>
+        <div class="muted"><span class="pill" id="remainPill"></span></div>
       </div>
     </div>
-    <div class="muted" id="hint">In base alle ore di veglia stimate.</div>
   </div>
 
   <div class="card" style="margin-top:12px">
-    <div class="grid">
-      <div>
-        <label>Stick max/giorno</label>
-        <input type="number" id="inpTarget" min="1" max="40" step="1" />
+    <details open>
+      <summary>Piano di riduzione</summary>
+      <div class="grid" style="margin-top:8px">
+        <div>
+          <label>Baseline (stick/giorno)</label>
+          <input type="number" id="base" min="1" max="80" step="1" />
+        </div>
+        <div>
+          <label>Target finale</label>
+          <input type="number" id="target" min="0" max="80" step="1" />
+        </div>
+        <div>
+          <label>Riduzione settimanale %</label>
+          <input type="number" id="weeklyPct" min="1" max="30" step="1" />
+        </div>
+        <div>
+          <label>Settimane</label>
+          <input type="number" id="weeks" min="1" max="52" step="1" />
+        </div>
+        <div>
+          <label>Data inizio piano</label>
+          <input type="date" id="startDate" />
+        </div>
+        <div style="align-self:end">
+          <button class="secondary" id="btnBuildPlan">Rigenera piano</button>
+        </div>
       </div>
-      <div>
-        <label>Ora inizio veglia</label>
-        <input type="time" id="awakeStart" />
-      </div>
-      <div>
-        <label>Ora fine veglia</label>
-        <input type="time" id="awakeEnd" />
-      </div>
-      <div style="align-self:end">
-        <button class="secondary" id="btnSave">Salva impostazioni</button>
-      </div>
-    </div>
-    <div class="muted" style="margin-top:8px">Consiglio: imposta la tua solita finestra di veglia (es. 07:30 – 23:30). L’app calcola i minuti disponibili e divide per il tuo obiettivo giornaliero → ottieni il ritmo consigliato tra due stick.</div>
-  </div>
-
-  <div class="muted" style="margin-top:16px">
-    Suggerimento Siri: crea una Scorciatoia che apre l’URL <code>?add=1</code> della tua app (vedi istruzioni più sotto) per registrare uno stick a voce.
-  </div>
-
-  <div class="card" style="margin-top:12px">
-    <details>
-      <summary>Come usare con Siri (senza Mac)</summary>
-      <ol>
-        <li>Metti online questa pagina (GitHub Pages va benissimo — vedi passaggi più sotto).</li>
-        <li>In “Comandi Rapidi” su iPhone, crea un nuovo comando: azione <strong>Apri URL</strong> → incolla l’URL del tuo sito con <code>?add=1</code> (es. <em>https://tuonome.github.io/stickdown/?add=1</em>).</li>
-        <li>Opzionale: aggiungi azione <strong>Mostra notifica</strong> con “Aggiunto +1”.</li>
-        <li>Dai un nome tipo “Aggiungi uno stick” e assegna la frase a Siri.</li>
-      </ol>
-      Quando esegui il comando, la pagina si apre, registra +1 e aggiorna il timer automaticamente.
+      <div class="muted" style="margin-top:8px">Il piano calcola l'obiettivo giornaliero settimana per settimana e lo applica al calendario. La domenica è un giorno cuscinetto (−10% di riduzione rispetto agli altri giorni della stessa settimana).</div>
+      <div id="planTableWrap" style="margin-top:12px"></div>
     </details>
   </div>
 
   <div class="card" style="margin-top:12px">
     <details>
-      <summary>Mettere online con GitHub Pages (da Windows)</summary>
+      <summary>Orari di veglia</summary>
+      <div class="grid" style="margin-top:8px">
+        <div>
+          <label>Ora inizio veglia</label>
+          <input type="time" id="awakeStart" />
+        </div>
+        <div>
+          <label>Ora fine veglia</label>
+          <input type="time" id="awakeEnd" />
+        </div>
+        <div>
+          <label>Oppure inserisci sonno medio (minuti)</label>
+          <input type="number" id="sleepAvg" min="120" max="1200" step="5" />
+        </div>
+        <div style="align-self:end">
+          <button class="secondary" id="btnSaveWake">Salva</button>
+        </div>
+      </div>
+      <div class="muted" style="margin-top:8px">Se inserisci il sonno medio, useremo 24h − sonno per calcolare le ore di veglia. In alternativa usa gli orari inizio/fine.</div>
+    </details>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <details>
+      <summary>Integrazione con Siri e Salute (via Comandi Rapidi)</summary>
       <ol>
-        <li>Crea un account su GitHub e un nuovo repository chiamato <strong>stickdown</strong>.</li>
-        <li>Copia questo file come <code>index.html</code> nel repo (puoi usare “Add file → Create new file” online).</li>
-        <li>Vai su <em>Settings → Pages</em>, come <em>Source</em> scegli <strong>Deploy from a branch</strong>, branch <strong>main</strong>, cartella <strong>root</strong> e salva.</li>
-        <li>Dopo qualche secondo avrai l’indirizzo <em>https://tuonome.github.io/stickdown</em>.</li>
-        <li>Su iPhone, apri quell’indirizzo in Safari → Condividi → <strong>Aggiungi a Home</strong> per usarla a tutto schermo.</li>
+        <li>In Comandi Rapidi, crea un comando: azione <strong>Trova campioni Salute</strong> → tipo <strong>Analisi sonno</strong> → intervallo <em>ultimi 14 giorni</em>.</li>
+        <li>Aggiungi azione <strong>Filtra</strong> per includere solo i campioni "Asleep" (se disponibile) e somma la <strong>durata</strong> in minuti; dividi per 14 per avere il <strong>sonno medio</strong>.</li>
+        <li>Aggiungi azione <strong>Apri URL</strong> con l'indirizzo della tua app seguito da <code>?sleep=MINUTI</code> (esempio: <em>https://tuonome.github.io/stickdown/?sleep=420</em>).</li>
+        <li>Dai un nome tipo "Aggiorna sonno StickDown". Quando lo esegui, l'app salverà il nuovo sonno medio e ricalcolerà gli intervalli.</li>
       </ol>
+      <div class="muted">Nota: le web‑app non possono leggere Salute direttamente; Comandi Rapidi fa da ponte sicuro con il tuo consenso.</div>
+      <div class="muted" style="margin-top:8px">Per aggiungere rapidamente +1 con Siri usa l'URL <code>?add=1</code>. Per annullare l'ultimo usa <code>?undo=1</code>.</div>
     </details>
   </div>
 </div>
@@ -132,89 +156,181 @@
     set(key, val){ localStorage.setItem(key, JSON.stringify(val)) }
   };
 
-  // --- Settings ---
-  const defaults = { target: 10, awakeStart: "07:30", awakeEnd: "23:30" };
-  const settings = LS.get('settings', defaults);
-  const day = LS.get('day:'+todayKey(), { count:0, last:null });
+  // --- Default settings and state ---
+  const defaults = {
+    base: 12, target: 0, weeklyPct: 8, weeks: 12,
+    startDate: new Date().toISOString().slice(0,10),
+    awakeStart: "07:30", awakeEnd: "23:30", sleepAvg: null
+  };
+  const settings = Object.assign({}, defaults, LS.get('settings', {}));
 
-  // URL param quick add (?add=1)
+  // Daily log for today
+  const dayKey = 'day:'+todayKey();
+  let day = LS.get(dayKey, { count:0, last:null });
+
+  // --- URL params ---
   const params = new URLSearchParams(location.search);
-  if(params.get('add') === '1') { day.count++; day.last = new Date().toISOString(); LS.set('day:'+todayKey(), day); showToast("Aggiunto +1"); history.replaceState({}, '', location.pathname); }
+  const add = parseInt(params.get('add')||'0',10);
+  const undo = params.get('undo') === '1';
+  const sleepParam = params.get('sleep');
+  if(!isNaN(add) && add>0){ day.count += add; day.last = new Date().toISOString(); LS.set(dayKey, day); toast("Aggiunto +"+add); history.replaceState({}, '', location.pathname); }
+  if(undo){ if(day.count>0){ day.count--; LS.set(dayKey, day); toast('Annullato'); } history.replaceState({}, '', location.pathname); }
+  if(sleepParam){ const m = Math.max(120, Math.min(1200, parseInt(sleepParam,10)||0)); settings.sleepAvg = m; LS.set('settings', settings); toast('Sonno medio aggiornato: '+m+' min'); history.replaceState({}, '', location.pathname); }
 
-  // Elements
+  // --- Plan generation ---
+  function buildPlan(base, target, weeklyPct, weeks, startDateStr){
+    const plan = {}; // date -> quota
+    let current = base;
+    const start = new Date(startDateStr+'T00:00:00');
+    for(let w=0; w<weeks; w++){
+      current = Math.max(target, Math.round(current * (1 - weeklyPct/100)));
+      for(let d=0; d<7; d++){
+        const date = new Date(start.getTime() + (w*7 + d)*86400000);
+        const key = date.toISOString().slice(0,10);
+        let quota = current;
+        // Domenica cuscinetto: riduzione minore (addolcisce la settimana)
+        if(date.getDay() === 0) quota = Math.max(target, Math.ceil(current * 0.9));
+        plan[key] = quota;
+      }
+      if(current === target) break;
+    }
+    return plan;
+  }
+
+  function loadOrBuildPlan(){
+    let plan = LS.get('plan', null);
+    if(!plan){
+      plan = buildPlan(settings.base, settings.target, settings.weeklyPct, settings.weeks, settings.startDate);
+      LS.set('plan', plan);
+    }
+    return plan;
+  }
+
+  function savePlan(plan){ LS.set('plan', plan); }
+
+  // Awake minutes: prefer sleepAvg if set, else time window
+  function minutesBetween(t1, t2){
+    if(!t1 || !t2) return null;
+    const [h1,m1]=t1.split(':').map(Number), [h2,m2]=t2.split(':').map(Number);
+    let a=h1*60+m1, b=h2*60+m2; if(b<=a) b+=1440; return b-a;
+  }
+  function awakeMinutesNow(){
+    if(settings.sleepAvg){ return 1440 - settings.sleepAvg; }
+    const m = minutesBetween(settings.awakeStart, settings.awakeEnd);
+    return m ?? 960; // fallback 16h
+  }
+
+  function timeLeftToday(){
+    // minutes left until end of wake window today
+    const now = new Date();
+    if(settings.sleepAvg){
+      // Approx: assume end of wake at start + awakeMinutes; take awakeStart as reference
+      const [h,m] = (settings.awakeStart||'07:30').split(':').map(Number);
+      const start = new Date(now); start.setHours(h,m,0,0);
+      let end = new Date(start.getTime() + awakeMinutesNow()*60000);
+      if(end < now) end = new Date(now.getTime() + 1); // avoid negative
+      return Math.max(0, Math.floor((end - now)/60000));
+    } else {
+      const [h2,m2] = (settings.awakeEnd||'23:30').split(':').map(Number);
+      const end = new Date(now); end.setHours(h2,m2,0,0);
+      if(end < now) return 0; // after end
+      return Math.floor((end - now)/60000);
+    }
+  }
+
+  function suggestedIntervalDynamic(quotaToday, usedToday){
+    const remain = Math.max(0, quotaToday - usedToday);
+    if(remain <= 0) return Infinity;
+    const left = Math.max(1, timeLeftToday());
+    return Math.max(5, Math.floor((left*60) / remain) / 60); // minutes
+  }
+
+  // Render plan table
+  function renderPlanTable(plan){
+    const wrap = $('#planTableWrap');
+    const rows = Object.keys(plan).sort().slice(0, 28).map(d => {
+      return `<tr><td>${d}</td><td>${plan[d]}</td></tr>`;
+    }).join('');
+    wrap.innerHTML = `<table><thead><tr><th>Data</th><th>Quota</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  // UI references
   const elToday = $('#today'), elSince = $('#sinceLast'), elAdvice = $('#advice');
   const elReco = $('#reco'), elGoal = $('#goal'), elHint = $('#hint');
   const elProgress = $('#progress');
-  const inpTarget = $('#inpTarget');
-  const awakeStart = $('#awakeStart');
-  const awakeEnd = $('#awakeEnd');
+  const remainPill = $('#remainPill');
 
-  // Init form
-  inpTarget.value = settings.target;
-  awakeStart.value = settings.awakeStart;
-  awakeEnd.value = settings.awakeEnd;
+  // Settings inputs
+  const base = $('#base'), target = $('#target'), weeklyPct = $('#weeklyPct'), weeks = $('#weeks'), startDate = $('#startDate');
+  const awakeStart = $('#awakeStart'), awakeEnd = $('#awakeEnd'), sleepAvg = $('#sleepAvg');
 
-  // Helpers
-  function diffFmt(sec){ sec = Math.max(0, Math.floor(sec)); const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60; if(h>0)return `${h}h ${m}m ${s}s`; if(m>0)return `${m}m ${s}s`; return `${s}s`; }
-  function minutesBetween(t1, t2){
-    const [h1,m1] = t1.split(':').map(Number), [h2,m2] = t2.split(':').map(Number);
-    let a = h1*60+m1, b = h2*60+m2; if (b<=a) b += 24*60; return b-a; // supports crossing midnight
-  }
-  function suggestedInterval(){
-    const awake = minutesBetween(settings.awakeStart, settings.awakeEnd);
-    return Math.max(5, Math.floor(awake / Math.max(1, settings.target)));
-  }
+  // Init settings form
+  base.value = settings.base; target.value = settings.target; weeklyPct.value = settings.weeklyPct; weeks.value = settings.weeks; startDate.value = settings.startDate;
+  awakeStart.value = settings.awakeStart; awakeEnd.value = settings.awakeEnd; if(settings.sleepAvg) sleepAvg.value = settings.sleepAvg;
+
+  // Plan
+  let plan = loadOrBuildPlan();
+  renderPlanTable(plan);
+
+  function quotaToday(){ return plan[todayKey()] ?? settings.base; }
 
   function updateUI(){
-    const target = settings.target;
-    const remain = Math.max(0, target - day.count);
-    elToday.textContent = `Oggi: ${day.count} / ${target}`;
-    elGoal.textContent = target;
+    // Header counts
+    const qToday = quotaToday();
+    elToday.textContent = `Oggi: ${day.count} / ${qToday}`;
+    elGoal.textContent = qToday;
+    remainPill.textContent = `Rimasti: ${Math.max(0, qToday - day.count)}`;
 
-    const recoMin = suggestedInterval();
-    elReco.textContent = `${recoMin} min`;
+    // Dynamic recommended interval (based on time left today and remaining sticks)
+    const recMin = suggestedIntervalDynamic(qToday, day.count);
+    elReco.textContent = Number.isFinite(recMin) ? `${Math.max(1, Math.floor(recMin))} min` : '—';
+    elHint.textContent = settings.sleepAvg ? `Basato su sonno medio: ${settings.sleepAvg} min` : `Veglia: ${settings.awakeStart} → ${settings.awakeEnd}`;
 
+    // Last stick timer
     const last = day.last ? new Date(day.last) : null;
-    if(!last){
-      elSince.textContent = 'Nessuno oggi';
-      elAdvice.textContent = '';
-      elProgress.style.width = '0%';
-      return;
-    }
+    if(!last){ elSince.textContent = 'Nessuno oggi'; elAdvice.textContent=''; elProgress.style.width='0%'; return; }
     const sec = (Date.now()-last.getTime())/1000;
     elSince.textContent = diffFmt(sec);
 
-    const need = recoMin*60;
+    // Should wait?
+    const need = (Number.isFinite(recMin) ? recMin : 60) * 60;
     const wait = Math.max(0, need - sec);
-    if(wait>0){
-      elAdvice.innerHTML = `<span class='warn'>Aspetta ancora ${diffFmt(wait)} per restare nel ritmo consigliato.</span>`;
-    } else {
-      elAdvice.innerHTML = `<span class='ok'>Puoi accendere senza sforare il ritmo medio.</span>`;
-    }
+    if(wait>0){ elAdvice.innerHTML = `<span class='warn'>Aspetta ancora ${diffFmt(wait)} per restare nel ritmo consigliato.</span>`; } else { elAdvice.innerHTML = `<span class='ok'>Puoi accendere senza sforare il ritmo medio.</span>`; }
     const pct = Math.min(100, Math.floor( (sec/need)*100 ));
     elProgress.style.width = pct+"%";
-
-    elHint.textContent = `In base alla veglia: ${settings.awakeStart} → ${settings.awakeEnd}`;
   }
 
+  function diffFmt(sec){ sec = Math.max(0, Math.floor(sec)); const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60; if(h>0)return `${h}h ${m}m ${s}s`; if(m>0)return `${m}m ${s}s`; return `${s}s`; }
+
   // Buttons
-  $('#btnPlus').addEventListener('click', ()=>{ day.count++; day.last=new Date().toISOString(); LS.set('day:'+todayKey(), day); updateUI(); showToast('Aggiunto +1'); });
-  $('#btnUndo').addEventListener('click', ()=>{ if(day.count>0){ day.count--; LS.set('day:'+todayKey(), day); updateUI(); showToast('Annullato'); }});
-  $('#btnSave').addEventListener('click', ()=>{
-    settings.target = Math.max(1, parseInt(inpTarget.value||'10',10));
-    settings.awakeStart = awakeStart.value || '07:30';
-    settings.awakeEnd = awakeEnd.value || '23:30';
-    LS.set('settings', settings); updateUI(); showToast('Impostazioni salvate');
+  $('#btnPlus').addEventListener('click', ()=>{ day.count++; day.last=new Date().toISOString(); LS.set(dayKey, day); updateUI(); toast('Aggiunto +1'); });
+  $('#btnUndo').addEventListener('click', ()=>{ if(day.count>0){ day.count--; LS.set(dayKey, day); updateUI(); toast('Annullato'); }});
+  $('#btnBuildPlan').addEventListener('click', ()=>{
+    settings.base = Math.max(1, parseInt(base.value||settings.base,10));
+    settings.target = Math.max(0, parseInt(target.value||settings.target,10));
+    settings.weeklyPct = Math.min(30, Math.max(1, parseInt(weeklyPct.value||settings.weeklyPct,10)));
+    settings.weeks = Math.min(52, Math.max(1, parseInt(weeks.value||settings.weeks,10)));
+    settings.startDate = startDate.value || settings.startDate;
+    LS.set('settings', settings);
+    plan = buildPlan(settings.base, settings.target, settings.weeklyPct, settings.weeks, settings.startDate);
+    savePlan(plan);
+    renderPlanTable(plan);
+    updateUI();
+    toast('Piano rigenerato');
+  });
+  $('#btnSaveWake').addEventListener('click', ()=>{
+    settings.awakeStart = awakeStart.value || settings.awakeStart;
+    settings.awakeEnd = awakeEnd.value || settings.awakeEnd;
+    const sv = parseInt(sleepAvg.value||''); settings.sleepAvg = isNaN(sv)? null : sv;
+    LS.set('settings', settings); updateUI(); toast('Impostazioni veglia salvate');
   });
   $('#btnSettings').addEventListener('click', ()=>{ window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}) });
 
   // Midnight reset
   setInterval(()=>{
     const key = 'day:'+todayKey();
-    // if changed day, start new
     if(!localStorage.getItem(key)){
-      LS.set(key, {count:0, last:null});
-      location.reload();
+      LS.set(key, {count:0, last:null}); location.reload();
     }
   }, 30000);
 
@@ -222,7 +338,7 @@
   setInterval(updateUI, 1000);
   updateUI();
 
-  function showToast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1200); }
+  function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1200); }
 })();
 </script>
 </body>
